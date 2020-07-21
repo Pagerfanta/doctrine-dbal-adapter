@@ -11,10 +11,7 @@ use Pagerfanta\Exception\InvalidArgumentException;
  */
 class QueryAdapter implements AdapterInterface
 {
-    /**
-     * @var QueryBuilder
-     */
-    private $queryBuilder;
+    private QueryBuilder $queryBuilder;
 
     /**
      * @var callable
@@ -22,41 +19,28 @@ class QueryAdapter implements AdapterInterface
     private $countQueryBuilderModifier;
 
     /**
-     * @param callable $countQueryBuilderModifier a callable to modify the query builder to count the results
+     * @param callable $countQueryBuilderModifier a callable to modify the query builder to count the results, the callable should have a signature of `function (QueryBuilder $queryBuilder): void {}`
      *
-     * @throws InvalidArgumentException if a non-SELECT query is given or the modifier is not a callable
+     * @throws InvalidArgumentException if a non-SELECT query is given
      */
-    public function __construct(QueryBuilder $queryBuilder, $countQueryBuilderModifier)
+    public function __construct(QueryBuilder $queryBuilder, callable $countQueryBuilderModifier)
     {
         if (QueryBuilder::SELECT !== $queryBuilder->getType()) {
             throw new InvalidArgumentException('Only SELECT queries can be paginated.');
-        }
-
-        if (!\is_callable($countQueryBuilderModifier)) {
-            throw new InvalidArgumentException(sprintf('The $countQueryBuilderModifier argument of the %s constructor must be a callable, a %s was given.', self::class, \gettype($countQueryBuilderModifier)));
         }
 
         $this->queryBuilder = clone $queryBuilder;
         $this->countQueryBuilderModifier = $countQueryBuilderModifier;
     }
 
-    /**
-     * @return int
-     */
-    public function getNbResults()
+    public function getNbResults(): int
     {
         $qb = $this->prepareCountQueryBuilder();
 
         return (int) $qb->execute()->fetchColumn();
     }
 
-    /**
-     * @param int $offset
-     * @param int $length
-     *
-     * @return iterable
-     */
-    public function getSlice($offset, $length)
+    public function getSlice(int $offset, int $length): iterable
     {
         $qb = clone $this->queryBuilder;
 
